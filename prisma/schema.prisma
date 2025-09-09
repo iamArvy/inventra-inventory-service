@@ -29,10 +29,10 @@ model Product {
   updatedAt   DateTime    @updatedAt
   deletedAt   DateTime?
   inventory   Inventory[]
-  promotions  Promotion[]
 
   @@unique([sku, storeId])
   @@index([deletedAt, categoryId, storeId])
+  @@map("products")
 }
 
 model Category {
@@ -46,19 +46,20 @@ model Category {
 
   @@unique([name, storeId])
   @@index([storeId])
+  @@map("categories")
 }
 
 model Location {
-  id         String      @id @default(cuid())
-  storeId    String
-  name       String
-  address    String
-  createdAt  DateTime    @default(now())
-  inventory  Inventory[]
-  promotions Promotion[]
+  id        String      @id @default(cuid())
+  storeId   String
+  name      String
+  address   String
+  createdAt DateTime    @default(now())
+  inventory Inventory[]
 
   @@unique([name, storeId])
   @@index([storeId])
+  @@map("locations")
 }
 
 model Inventory {
@@ -77,6 +78,7 @@ model Inventory {
   @@unique([productId, locationId])
   @@index([productId])
   @@index([locationId])
+  @@map("inventories")
 }
 
 model InventoryMovement {
@@ -91,30 +93,7 @@ model InventoryMovement {
   @@index([inventoryId, type])
   @@index([inventoryId, createdAt])
   @@index([inventoryId, createdAt, type])
-}
-
-model Promotion {
-  id              String       @id @default(cuid())
-  productId       String
-  product         Product      @relation(fields: [productId], references: [id])
-  locationId      String?
-  location        Location?    @relation(fields: [locationId], references: [id])
-  discountType    DiscountType
-  discountValue   Decimal      @db.Decimal(10, 2)
-  discountPercent Int?
-  startDate       DateTime
-  endDate         DateTime
-  createdAt       DateTime     @default(now())
-
-  @@index([locationId, startDate, endDate])
-  @@index([productId])
-  @@index([locationId])
-  @@index([discountType])
-}
-
-enum DiscountType {
-  PERCENT
-  FIXED_PRICE
+  @@map("inventory_movements")
 }
 
 enum MovementType {
