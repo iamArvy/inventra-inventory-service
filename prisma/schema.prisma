@@ -1,0 +1,123 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id          String      @id @default(uuid())
+  name        String
+  description String
+  image       String
+  sku         String
+  basePrice   Decimal     @db.Decimal(10, 2)
+  storeId     String
+  categoryId  String?
+  category    Category?   @relation(fields: [categoryId], references: [id])
+  tags        String[]
+  attributes  Json?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+  inventory   Inventory[]
+  promotions  Promotion[]
+
+  @@unique([sku, storeId])
+  @@index([deletedAt, categoryId, storeId])
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  image       String?
+  storeId     String
+  products    Product[]
+  createdAt   DateTime  @default(now())
+
+  @@unique([name, storeId])
+  @@index([storeId])
+}
+
+model Location {
+  id         String      @id @default(cuid())
+  storeId    String
+  name       String
+  address    String
+  createdAt  DateTime    @default(now())
+  inventory  Inventory[]
+  promotions Promotion[]
+
+  @@unique([name, storeId])
+  @@index([storeId])
+}
+
+model Inventory {
+  id            String              @id @default(uuid())
+  productId     String
+  product       Product             @relation(fields: [productId], references: [id])
+  locationId    String?
+  location      Location?           @relation(fields: [locationId], references: [id])
+  priceOverride Decimal?            @db.Decimal(10, 2)
+  quantity      Int                 @default(0)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  deletedAt     DateTime?
+  movement      InventoryMovement[]
+
+  @@unique([productId, locationId])
+  @@index([productId])
+  @@index([locationId])
+}
+
+model InventoryMovement {
+  id          String       @id @default(uuid())
+  inventoryId String
+  inventory   Inventory    @relation(fields: [inventoryId], references: [id])
+  quantity    Int
+  type        MovementType
+  reason      String
+  createdAt   DateTime     @default(now())
+
+  @@index([inventoryId, type])
+  @@index([inventoryId, createdAt])
+  @@index([inventoryId, createdAt, type])
+}
+
+model Promotion {
+  id              String       @id @default(cuid())
+  productId       String
+  product         Product      @relation(fields: [productId], references: [id])
+  locationId      String?
+  location        Location?    @relation(fields: [locationId], references: [id])
+  discountType    DiscountType
+  discountValue   Decimal      @db.Decimal(10, 2)
+  discountPercent Int?
+  startDate       DateTime
+  endDate         DateTime
+  createdAt       DateTime     @default(now())
+
+  @@index([locationId, startDate, endDate])
+  @@index([productId])
+  @@index([locationId])
+  @@index([discountType])
+}
+
+enum DiscountType {
+  PERCENT
+  FIXED_PRICE
+}
+
+enum MovementType {
+  INCREASE
+  DECREASE
+}
