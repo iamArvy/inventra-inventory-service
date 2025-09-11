@@ -1,24 +1,27 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import {
-  CategoryDto,
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
+import {
   CategoryQueryDto,
   CreateCategoryDto,
   PaginatedCategoryDto,
   UpdateCategoryDto,
 } from '../dto';
 import { CategoryRepository } from '../repository';
-import { SortOrder } from 'src/common/dto';
-import { FilterQuery } from 'mongoose';
-import { Category } from '../schema';
 import { ProductRepository } from 'src/product/repository';
-import { CategoryEvent } from '../event';
+// import { CategoryEvent } from '../event';
+import { Prisma } from '@prisma/client';
+import { CategoryEntity } from '../entity';
 
 @Injectable()
 export class CategoryService {
   constructor(
     private readonly repo: CategoryRepository,
     private readonly productRepo: ProductRepository,
-    private readonly event: CategoryEvent,
+    // private readonly event: CategoryEvent,
   ) {}
 
   private readonly logger = new Logger(this.constructor.name);
@@ -28,17 +31,16 @@ export class CategoryService {
    * @param store_id - ID of the store
    * @param data - Category input data
    */
-  async create(data: CreateCategoryDto) {
-    const { storeId, name } = data;
-    const exists = await this.repo.findByName(storeId, name);
+  async create(enterpriseId: string, data: CreateCategoryDto) {
+    const exists = await this.repo.findByName(enterpriseId, data.name);
     if (exists)
       throw new BadRequestException(
         'Category with name already exist for this store',
       );
-    const category = CategoryDto.from(await this.repo.create(data));
-    this.logger.log(`Category ${category.id} created in store ${storeId}`);
-    this.event.created(category);
-    return category;
+    const category = await this.repo.create(enterpriseId, data);
+    // this.logger.log(`Category ${category.id} created in store ${enterpriseId}`);
+    // this.event.created(category);
+    return new CategoryEntity(category);
   }
 
   /**
@@ -46,30 +48,31 @@ export class CategoryService {
    * @param id - Category ID
    */
   async get(id: string) {
-    const category = await this.repo.findByIdOrThrow(id);
-    return CategoryDto.from(category);
+    const category = await this.repo.findById(id);
+    if (!category) throw new NotFoundException('Category not found');
+    return new CategoryEntity(category);
   }
 
   /**
    * List categories with optional filtering and pagination
    * @param query - Category query parameters
    */
-  async list(query: CategoryQueryDto) {
-    const { sortBy, order, page, pageSize, name, storeId } = query;
-    const sortField = sortBy ?? 'name';
-    const sortOrder = order === SortOrder.DESC ? -1 : 1;
-    const options = {
-      page: page ?? 1,
-      limit: pageSize ?? 10,
-      sort: { [sortField]: sortOrder },
-    };
+  async list(enterpriseId: string, query: CategoryQueryDto) {
+    const { sortBy, order, page, limit, name } = query;
+    const orderBy = { [sortBy ?? 'createdAt']: order };
 
-    const filter: FilterQuery<Category> = {};
+    const filter: Prisma.CategoryWhereInput = {};
     if (name) filter.name = query.name;
-    if (storeId) filter.storeId = storeId;
+    if (enterpriseId) filter.enterpriseId = enterpriseId;
 
-    const result = await this.repo.list(filter, options);
-    return PaginatedCategoryDto.from(result);
+    const result = await this.repo.list(
+      enterpriseId,
+      filter,
+      orderBy,
+      page,
+      limit,
+    );
+    return new PaginatedCategoryDto(result);
   }
 
   /**
@@ -78,17 +81,21 @@ export class CategoryService {
    * @param data - Partial category input data
    */
   async update(id: string, data: UpdateCategoryDto) {
-    const category = await this.repo.findByIdOrThrow(id);
+    const category = await this.repo.findById(id);
+    if (!category) throw new NotFoundException('Category not found');
 
     if (data.name && data.name !== category.name) {
-      const exists = await this.repo.findByName(category.storeId, data.name);
+      const exists = await this.repo.findByName(
+        category.enterpriseId,
+        data.name,
+      );
       if (exists && exists.id !== id)
         throw new BadRequestException('Category with name already exists');
     }
 
     await this.repo.update(id, data);
-    this.logger.log(`Category ${id} updated successfully`);
-    this.event.updated(id, data);
+    // this.logger.log(`Category ${id} updated successfully`);
+    // this.event.updated(id, data);
     return { success: true };
   }
 
@@ -97,16 +104,21 @@ export class CategoryService {
    * @param id - Category ID
    */
   async delete(id: string) {
-    await this.repo.findByIdOrThrow(id);
-    const productCount = await this.productRepo.count({ category: id });
+    const category = await this.repo.findById(id);
+
+    if (!category) throw new NotFoundException('Category not found');
+
+    const productCount = await this.productRepo.count(category.enterpriseId, {
+      categoryId: id,
+    });
     if (productCount > 0) {
       throw new BadRequestException(
         'Cannot delete category with existing products',
       );
     }
     await this.repo.delete(id);
-    this.logger.log(`Category ${id} deleted successfully`);
-    this.event.deleted(id);
+    // this.logger.log(`Category ${id} deleted successfully`);
+    // this.event.deleted(id);
     return { success: true };
   }
 

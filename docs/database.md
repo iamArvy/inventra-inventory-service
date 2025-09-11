@@ -2,9 +2,9 @@
 
 ## Overview
 
-This database design is for the **inventory service of Inventra** using PostgreSQL. It handles products, locations, stock, and movements. Flexible product metadata is stored in JSON columns, while transactional and relational data uses standard SQL structures. Caching is intended to improve read performance.
+This database design is for the **inventory service of Inventra** using PostgreSQL. It handles products, stores, stock, and movements. Flexible product metadata is storeed in JSON columns, while transactional and relational data uses standard SQL structures. Caching is intended to improve read performance.
 
-All entities include `storeId` to associate them with a store.
+All entities include `enterpriseId` to associate them with a enterprise.
 
 ---
 
@@ -17,11 +17,11 @@ All entities include `storeId` to associate them with a store.
 **Fields:**
 
 - `id` (UUID, PK)
-- `storeId` (String)
+- `enterpriseId` (String)
 - `name` (String)
 - `description` (String)
 - `image` (String)
-- `sku` (String, unique per store)
+- `sku` (String, unique per enterprise)
 - `basePrice` (Decimal(10,2))
 - `categoryId` (optional, FK to Category)
 - `tags` (String array)
@@ -30,8 +30,8 @@ All entities include `storeId` to associate them with a store.
 
 **Indexes/Constraints:**
 
-- Unique: `[sku, storeId]`
-- Index: `[deletedAt, categoryId, storeId]`
+- Unique: `[sku, enterpriseId]`
+- Index: `[deletedAt, categoryId, enterpriseId]`
 
 **Relationships:**
 
@@ -47,7 +47,7 @@ All entities include `storeId` to associate them with a store.
 **Fields:**
 
 - `id` (UUID, PK)
-- `storeId` (String)
+- `enterpriseId` (String)
 - `name` (String)
 - `description` (optional)
 - `image` (optional)
@@ -55,7 +55,7 @@ All entities include `storeId` to associate them with a store.
 
 **Indexes/Constraints:**
 
-- Unique: `[name, storeId]`
+- Unique: `[name, enterpriseId]`
 
 **Relationships:**
 
@@ -63,22 +63,22 @@ All entities include `storeId` to associate them with a store.
 
 ---
 
-### Location
+### store
 
 - Represents a branch or warehouse.
-- Optional: products can exist without a location (`locationId` nullable in inventory).
+- Optional: products can exist without a store (`storeId` nullable in inventory).
 
 **Fields:**
 
 - `id` (UUID, PK)
-- `storeId` (String)
+- `enterpriseId` (String)
 - `name` (String)
 - `address` (String)
 - `createdAt`
 
 **Indexes/Constraints:**
 
-- Unique: `[name, storeId]`
+- Unique: `[name, enterpriseId]`
 
 **Relationships:**
 
@@ -89,28 +89,28 @@ All entities include `storeId` to associate them with a store.
 ### Inventory
 
 - Tracks stock and optional price overrides.
-- Tied to a product and optionally a location.
+- Tied to a product and optionally a store.
 
 **Fields:**
 
 - `id` (UUID, PK)
-- `storeId` (String)
+- `enterpriseId` (String)
 - `productId` (FK to Product)
-- `locationId` (nullable, FK to Location)
+- `storeId` (nullable, FK to store)
 - `priceOverride` (Decimal(10,2))
 - `quantity` (Int, default 0)
 - `createdAt`, `updatedAt`, `deletedAt`
 
 **Indexes/Constraints:**
 
-- Unique: `[productId, locationId]`
-- Index: `[productId, locationId]`
+- Unique: `[productId, storeId]`
+- Index: `[productId, storeId]`
 
 **Relationships:**
 
 - One-to-many with `InventoryMovement`
 - Many-to-one with `Product`
-- Many-to-one with `Location` (optional)
+- Many-to-one with `store` (optional)
 
 ---
 
@@ -122,7 +122,7 @@ All entities include `storeId` to associate them with a store.
 **Fields:**
 
 - `id` (UUID, PK)
-- `storeId` (String)
+- `enterpriseId` (String)
 - `inventoryId` (FK to Inventory)
 - `quantity` (Int)
 - `type` (Enum: `INCREASE` / `DECREASE`)

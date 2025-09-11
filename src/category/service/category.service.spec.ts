@@ -6,10 +6,11 @@ import {
   ProductRepository,
 } from 'src/product/repository';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { CategoryDto, CategorySortBy, PaginatedCategoryDto } from '../dto';
+import { CategorySortBy, PaginatedCategoryDto } from '../dto';
 import { SortOrder } from 'src/common/dto';
-import { mockCategoryEvent } from '../event/categpry.event.mock';
-import { CategoryEvent } from '../event';
+import { CategoryEntity } from '../entity';
+// import { mockCategoryEvent } from '../event/categpry.event.mock';
+// import { CategoryEvent } from '../event';
 
 describe('CategoryService', () => {
   let service: CategoryService;
@@ -28,10 +29,10 @@ describe('CategoryService', () => {
           provide: CategoryRepository,
           useFactory: mockCategoryRepository,
         },
-        {
-          provide: CategoryEvent,
-          useFactory: mockCategoryEvent,
-        },
+        // {
+        //   provide: CategoryEvent,
+        //   useFactory: mockCategoryEvent,
+        // },
       ],
     }).compile();
 
@@ -50,8 +51,7 @@ describe('CategoryService', () => {
         id: 'id',
       });
       await expect(
-        service.create({
-          storeId: 'store1',
+        service.create('ent1', {
           name: 'cat1',
         }),
       ).rejects.toThrow(BadRequestException);
@@ -59,26 +59,18 @@ describe('CategoryService', () => {
 
     it('should create category if validation passes', async () => {
       categoryRepo.findByName.mockResolvedValueOnce(null);
-      categoryRepo.create.mockResolvedValueOnce({ _id: 'prod1' });
+      categoryRepo.create.mockResolvedValueOnce({ id: 'prod1' });
 
-      const result = await service.create({
-        storeId: 'store1',
+      const result = await service.create('ent1', {
         name: 'cat1',
       });
 
-      expect(result).toBeInstanceOf(CategoryDto);
+      expect(result).toBeInstanceOf(CategoryEntity);
       expect(categoryRepo.create).toHaveBeenCalled();
     });
   });
 
   describe('get', () => {
-    it('should throw if id is invalid', async () => {
-      categoryRepo.findByIdOrThrow.mockRejectedValueOnce(
-        new BadRequestException(),
-      );
-      await expect(service.get('invalid')).rejects.toThrow(BadRequestException);
-    });
-
     it('should throw if category does not exist', async () => {
       categoryRepo.findByIdOrThrow.mockRejectedValueOnce(
         new NotFoundException(),
@@ -88,16 +80,16 @@ describe('CategoryService', () => {
 
     it('should return category if id is valid', async () => {
       const category = { _id: 'p1' };
-      categoryRepo.findByIdOrThrow.mockResolvedValueOnce(category);
+      categoryRepo.findById.mockResolvedValueOnce(category);
       const result = await service.get('id');
-      expect(result).toBeInstanceOf(CategoryDto);
+      expect(result).toBeInstanceOf(CategoryEntity);
     });
   });
 
   describe('list', () => {
     it('should call repo.list with filters and options', async () => {
       categoryRepo.list.mockResolvedValueOnce({ docs: [], totalDocs: 0 });
-      const result = await service.list({
+      const result = await service.list('enterpriseId', {
         sortBy: CategorySortBy.NAME,
         order: SortOrder.ASC,
       });
@@ -108,15 +100,13 @@ describe('CategoryService', () => {
 
   describe('update', () => {
     it('should throw if category not found', async () => {
-      categoryRepo.findByIdOrThrow.mockRejectedValueOnce(
-        new NotFoundException(),
-      );
+      categoryRepo.findById.mockRejectedValueOnce(new NotFoundException());
       await expect(service.update('id', {})).rejects.toThrow(NotFoundException);
     });
 
     it('should throw if name is taken by another category', async () => {
-      categoryRepo.findByIdOrThrow.mockResolvedValueOnce({
-        storeId: 'store1',
+      categoryRepo.findById.mockResolvedValueOnce({
+        enterpriseId: 'store1',
         name: 'oldsku',
       });
       categoryRepo.findByName.mockResolvedValueOnce({
@@ -131,8 +121,8 @@ describe('CategoryService', () => {
     });
 
     it('should update successfully', async () => {
-      categoryRepo.findByIdOrThrow.mockResolvedValueOnce({
-        storeId: 'store1',
+      categoryRepo.findById.mockResolvedValueOnce({
+        enterpriseId: 'store1',
         name: 'name',
       } as any);
       categoryRepo.findByName.mockResolvedValueOnce(null);
@@ -152,13 +142,15 @@ describe('CategoryService', () => {
     });
 
     it('should throw if product count > 0', async () => {
-      categoryRepo.findByIdOrThrow.mockResolvedValueOnce({ _id: 'id' });
+      categoryRepo.findById.mockResolvedValueOnce({ id: 'id' });
       productRepo.count.mockResolvedValueOnce(1);
       await expect(service.delete('id')).rejects.toThrow(BadRequestException);
     });
 
     it('should delete successfully', async () => {
-      productRepo.findByIdOrThrow.mockResolvedValueOnce({} as any);
+      categoryRepo.findById.mockResolvedValueOnce({ id: 'id' });
+
+      productRepo.findById.mockResolvedValueOnce({} as any);
       productRepo.count.mockResolvedValueOnce(0);
 
       categoryRepo.delete.mockResolvedValueOnce({ success: true });

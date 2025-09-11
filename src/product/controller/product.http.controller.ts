@@ -1,9 +1,9 @@
 import {
   UpdateProductDto,
   CreateProductDto,
-  ProductDto,
   ProductQueryDto,
   PaginatedProductDto,
+  CreateProductInput,
 } from '../dto';
 import {
   Body,
@@ -24,15 +24,19 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Status } from 'src/common/dto/app.response';
+import { ProductEntity } from '../entity';
 
 @ApiTags('Product')
 @Controller('products')
 export class ProductHttpController {
   constructor(private readonly service: ProductService) {}
 
+  /**
+   * Create a product
+   */
   @ApiOkResponse({
     description: 'New product',
-    type: ProductDto,
+    type: ProductEntity,
   })
   @ApiBadRequestResponse({
     description:
@@ -42,22 +46,19 @@ export class ProductHttpController {
     type: CreateProductDto,
     description: 'Product data to create',
   })
-  @Put('create')
-  create(
-    @Body('storeId') id: string,
-    @Body() data: CreateProductDto,
-  ): Promise<ProductDto> {
-    return this.service.create(data);
+  @Put()
+  create(@Body() { enterpriseId, data }: CreateProductInput) {
+    return this.service.create(enterpriseId, data);
   }
 
   @ApiOkResponse({
     description: 'Product',
-    type: ProductDto,
+    type: ProductEntity,
   })
   @ApiNotFoundResponse({
     description: 'Product not found',
   })
-  @Get('get/:id')
+  @Get(':id')
   get(@Param('id') id: string) {
     return this.service.get(id);
   }
@@ -66,9 +67,12 @@ export class ProductHttpController {
     description: 'List of products',
     type: PaginatedProductDto,
   })
-  @Get('list')
-  list(@Query() query: ProductQueryDto) {
-    return this.service.list(query);
+  @Get()
+  list(
+    @Body('enterpriseId') enterpriseId: string,
+    @Query() query: ProductQueryDto,
+  ) {
+    return this.service.list(enterpriseId, query);
   }
 
   @ApiOkResponse({
@@ -86,7 +90,7 @@ export class ProductHttpController {
     type: UpdateProductDto,
     description: 'Product data to update',
   })
-  @Patch('update/:id')
+  @Patch(':id')
   update(@Param('id') id: string, @Body() data: UpdateProductDto) {
     return this.service.update(id, data);
   }
@@ -101,8 +105,17 @@ export class ProductHttpController {
   @ApiBadRequestResponse({
     description: 'Product already deleted',
   })
-  @Delete('delete/:id')
+  @Delete(':id')
   delete(@Param('id') id: string) {
     return this.service.delete(id);
+  }
+
+  @ApiOkResponse({
+    description: 'get inventory across all stores',
+    type: PaginatedProductDto,
+  })
+  @Get(':id/inventories')
+  inventories(@Param('id') id: string) {
+    return this.service.inventories(id);
   }
 }

@@ -1,39 +1,53 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import {
-  Category,
-  CategoryDocument,
-} from 'src/category/schema/category.schema';
-import { PaginateModel } from 'mongoose';
-import { InjectModel } from '@nestjs/mongoose';
-import { MongoRepository } from 'src/common/repositories/mongo.repository';
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from 'src/prisma';
+import { CreateCategoryDto, UpdateCategoryDto } from '../dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
-export class CategoryRepository extends MongoRepository<
-  CategoryDocument,
-  Category
-> {
-  constructor(
-    @InjectModel(Category.name) model: PaginateModel<CategoryDocument>,
+export class CategoryRepository {
+  constructor(private readonly prisma: PrismaService) {}
+
+  create(enterpriseId: string, data: CreateCategoryDto) {
+    return this.prisma.category.create({
+      data: {
+        ...data,
+        enterpriseId,
+      },
+    });
+  }
+
+  findById(id: string) {
+    return this.prisma.category.findUnique({
+      where: { id },
+    });
+  }
+
+  findByName(enterpriseId: string, name: string) {
+    return this.prisma.category.findUnique({
+      where: { name_enterpriseId: { enterpriseId, name } },
+    });
+  }
+
+  list(
+    enterpriseId: string,
+    where: Prisma.CategoryWhereInput,
+    orderBy: Prisma.CategoryOrderByWithAggregationInput,
+    page: number = 1,
+    limit: number = 20,
   ) {
-    super(model);
+    return this.prisma.xprisma.category.paginate({
+      where: { ...where, enterpriseId },
+      orderBy,
+      page,
+      limit,
+    });
   }
 
-  findByName(store_id: string, name: string) {
-    return this.model
-      .findOne({
-        store_id,
-        name,
-      })
-      .exec();
+  update(id: string, data: UpdateCategoryDto) {
+    return this.prisma.category.update({ where: { id }, data });
   }
 
-  findByNameOrThrow(store_id: string, name: string) {
-    return this.model
-      .findOne({
-        store_id,
-        name,
-      })
-      .orFail(new NotFoundException('Category not found'))
-      .exec();
+  delete(id: string) {
+    return this.prisma.category.delete({ where: { id } });
   }
 }

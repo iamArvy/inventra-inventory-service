@@ -14,81 +14,84 @@ datasource db {
 }
 
 model Product {
-  id          String      @id @default(uuid())
-  name        String
-  description String
-  image       String
-  sku         String
-  basePrice   Decimal     @db.Decimal(10, 2)
-  storeId     String
-  categoryId  String?
-  category    Category?   @relation(fields: [categoryId], references: [id])
-  tags        String[]
-  attributes  Json?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  deletedAt   DateTime?
-  inventory   Inventory[]
+  id           String      @id @default(uuid())
+  name         String
+  description  String
+  image        String?
+  sku          String
+  basePrice    Decimal     @db.Decimal(10, 2)
+  enterpriseId String
+  categoryId   String
+  category     Category    @relation(fields: [categoryId], references: [id])
+  tags         String[]
+  attributes   Json?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  deletedAt    DateTime?
+  inventories  Inventory[]
 
-  @@unique([sku, storeId])
-  @@index([deletedAt, categoryId, storeId])
+  @@unique([sku, enterpriseId])
+  @@index([deletedAt, categoryId, enterpriseId])
   @@map("products")
 }
 
 model Category {
-  id          String    @id @default(cuid())
-  name        String
-  description String?
-  image       String?
-  storeId     String
-  products    Product[]
-  createdAt   DateTime  @default(now())
+  id           String    @id @default(cuid())
+  name         String
+  description  String?
+  image        String?
+  enterpriseId String
+  products     Product[]
+  createdAt    DateTime  @default(now())
 
-  @@unique([name, storeId])
-  @@index([storeId])
+  @@unique([name, enterpriseId])
+  @@index([enterpriseId])
   @@map("categories")
 }
 
-model Location {
-  id        String      @id @default(cuid())
-  storeId   String
-  name      String
-  address   String
-  createdAt DateTime    @default(now())
-  inventory Inventory[]
+model Store {
+  id           String      @id @default(cuid())
+  enterpriseId String
+  name         String
+  address      String
+  createdAt    DateTime    @default(now())
+  deletedAt    DateTime?
+  inventory    Inventory[]
 
-  @@unique([name, storeId])
-  @@index([storeId])
-  @@map("locations")
+  @@unique([name, enterpriseId])
+  @@index([enterpriseId])
+  @@map("stores")
 }
 
 model Inventory {
-  id            String              @id @default(uuid())
-  productId     String
-  product       Product             @relation(fields: [productId], references: [id])
-  locationId    String?
-  location      Location?           @relation(fields: [locationId], references: [id])
-  priceOverride Decimal?            @db.Decimal(10, 2)
-  quantity      Int                 @default(0)
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
-  deletedAt     DateTime?
-  movement      InventoryMovement[]
+  id           String          @id @default(uuid())
+  enterpriseId String
+  productId    String
+  product      Product         @relation(fields: [productId], references: [id])
+  storeId      String
+  store        Store           @relation(fields: [storeId], references: [id])
+  price        Decimal?        @db.Decimal(10, 2)
+  quantity     Int             @default(0)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  deletedAt    DateTime?
+  movements    StockMovement[]
 
-  @@unique([productId, locationId])
+  @@unique([productId, storeId])
   @@index([productId])
-  @@index([locationId])
+  @@index([storeId])
   @@map("inventories")
 }
 
-model InventoryMovement {
-  id          String       @id @default(uuid())
-  inventoryId String
-  inventory   Inventory    @relation(fields: [inventoryId], references: [id])
-  quantity    Int
-  type        MovementType
-  reason      String
-  createdAt   DateTime     @default(now())
+model StockMovement {
+  id           String       @id @default(uuid())
+  inventoryId  String
+  inventory    Inventory    @relation(fields: [inventoryId], references: [id])
+  enterpriseId String
+  quantity     Int
+  type         MovementType
+  reason       String
+  createdAt    DateTime     @default(now())
 
   @@index([inventoryId, type])
   @@index([inventoryId, createdAt])

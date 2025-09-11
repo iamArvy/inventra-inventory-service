@@ -1,27 +1,28 @@
-import { CategoryDto } from 'category/dto';
-import { Expose, plainToInstance, Transform, Type } from 'class-transformer';
-import { Product, ProductDocument } from '../schema';
-import {
-  IsDefined,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Product } from '@prisma/client';
+// import { Product } from '@prisma/client';
+import { Exclude, Expose, Transform, Type } from 'class-transformer';
+import { CategoryEntity } from 'src/category';
 
-export class ProductDto {
+class InventoryEntity {
+  @ApiProperty()
+  stock: number;
+
+  @ApiProperty()
+  price: number;
+
+  constructor(partial: Partial<InventoryEntity>) {
+    Object.assign(this, partial);
+  }
+}
+
+export class ProductEntity {
   @ApiProperty({
     description: 'Unique identifier of the product',
     example: 'product_123',
   })
-  @IsString()
-  @IsNotEmpty()
-  @Expose()
-  @Transform(({ obj }: { obj: ProductDocument }) => obj._id.toString())
   id: string;
 
-  @Expose()
   @ApiProperty({
     description: 'Name of the product',
     example: 'Wireless Headphones',
@@ -32,56 +33,59 @@ export class ProductDto {
     description: 'Description of the product',
     example: 'High-quality wireless headphones with noise cancellation.',
   })
-  @IsString()
-  @IsOptional()
-  @Expose()
-  description?: string;
+  description: string;
 
   @ApiProperty({
     description: 'Image URL of the product',
     example: 'https://example.com/images/headphones.jpg',
   })
-  @IsString()
-  @IsOptional()
-  @Expose()
-  @Transform(({ obj }: { obj: ProductDocument }) => obj.image || null)
-  image?: string;
+  image: string | null;
 
   @ApiProperty({
     description: 'ID of the store where the product is available',
     example: 'store_123',
   })
-  @IsString()
-  @IsNotEmpty()
-  @Expose()
-  storeId: string;
+  enterpriseId: string;
 
   @ApiProperty({
     description: 'SKU (Stock Keeping Unit) of the product',
     example: 'SKU12345',
   })
-  @IsString()
-  @IsNotEmpty()
-  @Expose()
   sku: string;
 
   @ApiProperty({
     description: 'Price of the product',
     example: 999,
   })
-  @IsInt()
-  @IsDefined()
-  @Expose()
-  price: number;
+  @Transform(({ value }) => Number(value)) // Decimal -> number
+  basePrice: number;
+
+  @ApiProperty({ type: [InventoryEntity] })
+  @Type(() => InventoryEntity)
+  @Exclude()
+  inventories: InventoryEntity[];
 
   @ApiProperty({
-    description: 'Stock quantity of the product',
+    description: 'Stock quantity of the product (calculated)',
     example: 100,
   })
-  @IsInt()
-  @IsDefined()
+  get stock(): number {
+    return (
+      this.inventories?.reduce((sum, inv) => sum + (inv.stock || 0), 0) ?? 0
+    );
+  }
+
+  @ApiProperty({
+    description: 'Price of the product',
+    example: 999,
+  })
   @Expose()
-  stock: number;
+  get price(): number {
+    if (this.inventories.length > 1) return this.basePrice;
+    return this.inventories[0].price
+      ? this.inventories[0].price
+      : this.basePrice;
+  }
 
   @ApiProperty({
     description: 'Attributes of the product',
@@ -89,8 +93,6 @@ export class ProductDto {
     additionalProperties: true,
     example: { color: 'black', size: 'medium' },
   })
-  @IsOptional()
-  @Expose()
   attributes: Record<string, any>;
 
   @ApiProperty({
@@ -98,27 +100,20 @@ export class ProductDto {
     type: [String],
     example: ['electronics', 'headphones'],
   })
-  @IsOptional()
-  @IsString({ each: true })
-  @Expose()
   tags: string[];
 
   @ApiProperty({
     description: 'Category details of the product',
-    type: CategoryDto,
+    type: CategoryEntity,
     required: false,
   })
-  @Expose()
-  @Type(() => CategoryDto)
-  category: CategoryDto;
+  category: Partial<CategoryEntity>;
 
   @ApiProperty({
     description: 'Date when the product was created',
     type: Date,
     example: '2023-10-01T12:00:00Z',
   })
-  @IsNotEmpty()
-  @Expose()
   createdAt: Date;
 
   @ApiProperty({
@@ -126,20 +121,9 @@ export class ProductDto {
     type: Date,
     required: false,
   })
-  @IsOptional()
-  @Expose()
-  @Transform(({ obj }: { obj: ProductDocument }) => obj.deletedAt || null)
   deletedAt?: Date;
 
-  static from(data: Product): ProductDto {
-    return plainToInstance(ProductDto, data, {
-      excludeExtraneousValues: true,
-    });
-  }
-
-  static fromMany(data: Product[]): ProductDto[] {
-    return plainToInstance(ProductDto, data, {
-      excludeExtraneousValues: true,
-    });
+  constructor(partial: Partial<Product>) {
+    Object.assign(this, partial);
   }
 }

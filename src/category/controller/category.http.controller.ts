@@ -10,9 +10,8 @@ import {
 } from '@nestjs/common';
 import { CategoryService } from '../service';
 import {
-  CategoryDto,
   CategoryQueryDto,
-  CreateCategoryDto,
+  CreateCategoryInput,
   PaginatedCategoryDto,
   UpdateCategoryDto,
 } from '../dto';
@@ -23,6 +22,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Status } from 'src/common/dto/app.response';
+import { CategoryEntity } from '../entity';
+import { EnterpriseInput } from 'src/common/dto';
 
 @ApiTags('Category')
 @Controller('categories')
@@ -31,24 +32,24 @@ export class CategoryHttpController {
 
   @ApiOkResponse({
     description: 'New category created',
-    type: CategoryDto,
+    type: CategoryEntity,
   })
   @ApiBadRequestResponse({
     description: 'Category with name already exist for this store',
   })
-  @Put('create')
-  create(@Body() data: CreateCategoryDto) {
-    return this.service.create(data);
+  @Put()
+  create(@Body() { enterpriseId, data }: CreateCategoryInput) {
+    return this.service.create(enterpriseId, data);
   }
 
   @ApiOkResponse({
     description: 'Category',
-    type: CategoryDto,
+    type: CategoryEntity,
   })
   @ApiNotFoundResponse({
     description: 'Category not found',
   })
-  @Get('get/:id')
+  @Get(':id')
   get(@Param('id') id: string) {
     return this.service.get(id);
   }
@@ -57,9 +58,12 @@ export class CategoryHttpController {
     description: 'Paginated Category List',
     type: PaginatedCategoryDto,
   })
-  @Get('list')
-  list(@Query() query: CategoryQueryDto) {
-    return this.service.list(query);
+  @Get()
+  list(
+    @Body() { enterpriseId }: EnterpriseInput,
+    @Query() query: CategoryQueryDto,
+  ) {
+    return this.service.list(enterpriseId, query);
   }
 
   @ApiOkResponse({
@@ -73,7 +77,7 @@ export class CategoryHttpController {
   @ApiNotFoundResponse({
     description: 'Category not found',
   })
-  @Patch('update/:id')
+  @Patch(':id')
   update(@Param('id') id: string, @Body() data: UpdateCategoryDto) {
     return this.service.update(id, data);
   }
@@ -89,7 +93,7 @@ export class CategoryHttpController {
   @ApiNotFoundResponse({
     description: 'Category not found',
   })
-  @Delete('delete/:id')
+  @Delete(':id')
   delete(@Param('id') id: string) {
     return this.service.delete(id);
   }

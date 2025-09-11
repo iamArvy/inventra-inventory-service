@@ -9,9 +9,9 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { StoreId } from 'src/common/dto';
+import { EnterpriseInput } from 'src/common/dto';
 
-export class CreateProductDto extends StoreId {
+export class CreateProductDto {
   @IsString()
   @IsNotEmpty()
   @ApiProperty({
@@ -27,7 +27,7 @@ export class CreateProductDto extends StoreId {
     example: 'High-quality wireless headphones with noise cancellation.',
     required: false,
   })
-  description?: string;
+  description: string;
 
   @IsString()
   @IsOptional()
@@ -62,15 +62,7 @@ export class CreateProductDto extends StoreId {
     description: 'Price of the product',
     example: 999,
   })
-  price: number;
-
-  @IsNumber()
-  @IsDefined()
-  @ApiProperty({
-    description: 'Stock quantity of the product',
-    example: 100,
-  })
-  stock: number;
+  basePrice: number;
 
   @IsOptional()
   @IsObject()
@@ -91,4 +83,16 @@ export class CreateProductDto extends StoreId {
     required: false,
   })
   tags?: string[];
+}
+
+export class CreateProductInput extends EnterpriseInput {
+  data: CreateProductDto;
+
+  @IsNumber()
+  @IsDefined()
+  @ApiProperty({
+    description: 'Stock quantity of the product',
+    example: 100,
+  })
+  initialStock: number;
 }

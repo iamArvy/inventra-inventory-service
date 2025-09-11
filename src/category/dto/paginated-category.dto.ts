@@ -1,16 +1,15 @@
 import { PaginatedDto } from 'src/common/dto';
-import { CategoryDto } from './category.dto';
 import { ApiProperty } from '@nestjs/swagger';
-import { plainToInstance, Type } from 'class-transformer';
+import { CategoryEntity } from '../entity';
+import { Type } from 'class-transformer';
 
-export class PaginatedCategoryDto extends PaginatedDto<CategoryDto> {
-  @ApiProperty({ type: [CategoryDto] })
-  @Type(() => CategoryDto)
-  declare docs: CategoryDto[];
+export class PaginatedCategoryDto extends PaginatedDto<CategoryEntity> {
+  @ApiProperty({ type: [CategoryEntity] })
+  @Type(() => CategoryEntity)
+  declare results: CategoryEntity[];
 
-  static from(data): PaginatedCategoryDto {
-    return plainToInstance(PaginatedCategoryDto, data, {
-      excludeExtraneousValues: true,
-    });
+  constructor(partial: Partial<PaginatedCategoryDto>) {
+    super();
+    Object.assign(this, partial);
   }
 }

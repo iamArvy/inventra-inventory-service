@@ -9,10 +9,9 @@ import {
   Min,
   Max,
   IsArray,
-  IsUUID,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { PaginationDto } from 'src/common/dto';
+import { PaginationQueryDto, EnterpriseInput } from 'src/common/dto';
 
 export enum ProductSortBy {
   NAME = 'name',
@@ -22,7 +21,7 @@ export enum ProductSortBy {
   DATE = 'createdAt',
 }
 
-export class ProductQueryDto extends PaginationDto {
+export class ProductQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({ enum: ProductSortBy, description: 'Field to sort by' })
   @IsOptional()
   @IsEnum(ProductSortBy)
@@ -37,12 +36,6 @@ export class ProductQueryDto extends PaginationDto {
   @IsOptional()
   @IsString()
   sku?: string;
-
-  @ApiPropertyOptional({ description: 'ID of the store' })
-  @IsOptional()
-  @IsString()
-  @IsUUID()
-  storeId?: string;
 
   @ApiPropertyOptional({ type: String, description: 'ID of the category' })
   @IsOptional()
@@ -95,4 +88,8 @@ export class ProductQueryDto extends PaginationDto {
   @IsBoolean()
   @Type(() => Boolean)
   deleted?: boolean;
+}
+
+export class ListProductDto extends EnterpriseInput {
+  query: ProductQueryDto;
 }

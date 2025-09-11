@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { StoreId } from 'src/common/dto';
+import { EnterpriseInput } from 'src/common/dto';
 
-export class CreateCategoryDto extends StoreId {
+export class CreateCategoryDto {
   @IsString()
   @IsNotEmpty()
   @ApiProperty({
@@ -28,4 +28,8 @@ export class CreateCategoryDto extends StoreId {
   })
   @IsOptional()
   image?: string;
+}
+
+export class CreateCategoryInput extends EnterpriseInput {
+  data: CreateCategoryDto;
 }

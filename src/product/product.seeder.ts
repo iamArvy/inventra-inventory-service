@@ -24,7 +24,7 @@ export class ProductsSeeder implements Seeder {
       return {
         ...product,
         category: randomCategory._id, // use the category's _id
-        storeId: randomCategory.storeId, // use the category's store_id
+        enterpriseId: randomCategory.enterpriseId, // use the category's store_id
         createdAt: new Date(),
         updatedAt: new Date(),
       };

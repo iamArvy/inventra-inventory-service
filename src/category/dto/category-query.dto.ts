@@ -1,13 +1,13 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
-import { PaginationDto } from 'src/common/dto';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { EnterpriseInput, PaginationQueryDto } from 'src/common/dto';
 
 export enum CategorySortBy {
   NAME = 'name',
   DATE = 'createdAt',
 }
 
-export class CategoryQueryDto extends PaginationDto {
+export class CategoryQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({
     enum: CategorySortBy,
     description: 'Field to sort by',
@@ -20,10 +20,8 @@ export class CategoryQueryDto extends PaginationDto {
   @IsOptional()
   @IsString()
   name?: string;
+}
 
-  @ApiPropertyOptional({ description: 'ID of the store' })
-  @IsOptional()
-  @IsString()
-  @IsUUID()
-  storeId?: string;
+export class ListCategoryDto extends EnterpriseInput {
+  query: CategoryQueryDto;
 }

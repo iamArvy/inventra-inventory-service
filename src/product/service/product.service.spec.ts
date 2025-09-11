@@ -1,14 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProductService } from './product.service';
 import { mockProductRepository, ProductRepository } from '../repository';
-import { CategoryRepository } from 'src/category/repository/category.repository';
-import { BadRequestException, Logger } from '@nestjs/common';
-import { Types } from 'mongoose';
+import { CategoryRepository, mockCategoryRepository } from 'src/category';
+import { BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { SortOrder } from 'src/common/dto';
-import { ProductDto, ProductSortBy } from '../dto';
-import { ProductDocument } from '../schema';
-import { mockCategoryRepository } from 'src/category/repository';
-import { mockProductEvent, ProductEvent } from '../event';
+import { ProductSortBy } from '../dto';
+import { ProductEntity } from '../entity';
 
 describe('ProductService', () => {
   let service: ProductService;
@@ -27,10 +24,10 @@ describe('ProductService', () => {
           provide: CategoryRepository,
           useFactory: mockCategoryRepository,
         },
-        {
-          provide: ProductEvent,
-          useFactory: mockProductEvent,
-        },
+        // {
+        //   provide: ProductEvent,
+        //   useFactory: mockProductEvent,
+        // },
       ],
     }).compile();
 
@@ -43,81 +40,78 @@ describe('ProductService', () => {
 
   describe('create', () => {
     it('should throw if SKU already exists', async () => {
-      productRepo.findByStoreIdAndSku.mockResolvedValueOnce({
+      productRepo.findBySku.mockResolvedValueOnce({
         id: 'id',
-      } as Partial<ProductDocument>);
+      });
       await expect(
-        service.create({
-          storeId: 'store1',
+        service.create('enterpriseId', {
           categoryId: 'cat1',
+          description: 'description',
           sku: 'sku123',
           name: 'Prod',
-          price: 100,
-          stock: 5,
+          basePrice: 100,
         }),
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw if category does not exist or storeId mismatch', async () => {
-      productRepo.findByStoreIdAndSku.mockResolvedValueOnce(null);
+    it('should throw if category does not exist or enterpriseId mismatch', async () => {
+      productRepo.findBySku.mockResolvedValueOnce(null);
       categoryRepo.findById.mockResolvedValueOnce(null);
 
       await expect(
-        service.create({
-          storeId: 'store1',
+        service.create('enterpriseId', {
           categoryId: 'cat1',
+          description: 'description',
           sku: 'sku123',
           name: 'Prod',
-          price: 100,
-          stock: 5,
+          basePrice: 100,
         }),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should create product if validation passes', async () => {
-      productRepo.findByStoreIdAndSku.mockResolvedValueOnce(null);
+      productRepo.findBySku.mockResolvedValueOnce(null);
       categoryRepo.findById.mockResolvedValueOnce({
-        _id: 'id',
-        storeId: 'store1',
-      });
-      productRepo.create.mockResolvedValueOnce({ _id: 'prod1' });
+        id: 'id',
+        enterpriseId: 'store1',
+      } as any);
+      productRepo.create.mockResolvedValueOnce({
+        id: 'prod1',
+      } as ProductEntity);
 
-      const result = await service.create({
-        storeId: 'store1',
+      const result = await service.create('store1', {
         categoryId: 'cat1',
+        description: 'description',
         sku: 'sku123',
         name: 'Prod',
-        price: 100,
-        stock: 5,
+        basePrice: 100,
       });
 
-      expect(result).toBeInstanceOf(ProductDto);
+      expect(result).toEqual({
+        id: 'prod1',
+      });
       expect(productRepo.create).toHaveBeenCalled();
     });
   });
 
   describe('get', () => {
-    it('should throw if id is invalid', async () => {
-      productRepo.findByIdWithRelationships.mockRejectedValueOnce(
-        new BadRequestException(),
-      );
-      await expect(service.get('invalid')).rejects.toThrow(BadRequestException);
+    it('should throw if product not found', async () => {
+      productRepo.findById.mockResolvedValue(null);
+      await expect(service.get('invalid')).rejects.toThrow(NotFoundException);
     });
 
     it('should return product if id is valid', async () => {
-      const product = { _id: 'p1' };
-      productRepo.findByIdWithRelationships.mockResolvedValueOnce(
-        product as any,
-      );
+      const product = { id: 'p1' };
+      productRepo.findById.mockResolvedValueOnce(product as any);
       const result = await service.get('id');
-      expect(result).toBeInstanceOf(ProductDto);
+      expect(result).toBeInstanceOf(ProductEntity);
     });
   });
 
   describe('list', () => {
     it('should call repo.list with filters and options', async () => {
       productRepo.list.mockResolvedValueOnce({ docs: [], totalDocs: 0 });
-      await service.list({
+      await service.list('enterpriseId', {
         sortBy: ProductSortBy.NAME,
         order: SortOrder.ASC,
         minPrice: 10,
@@ -128,92 +122,90 @@ describe('ProductService', () => {
   });
 
   describe('update', () => {
-    it('should throw if id is invalid', async () => {
+    it('should throw if product not found', async () => {
+      productRepo.findById.mockResolvedValue(null);
       await expect(service.update('badid', {})).rejects.toThrow(
-        BadRequestException,
+        NotFoundException,
       );
     });
 
     it('should throw if product is deleted', async () => {
-      productRepo.findByIdWithRelationships.mockResolvedValueOnce({
+      productRepo.findById.mockResolvedValueOnce({
         deletedAt: new Date(),
       });
-      await expect(
-        service.update(new Types.ObjectId().toString(), {}),
-      ).rejects.toThrow('Product already deleted');
+      await expect(service.update('id', {})).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it('should throw if SKU is taken by another product', async () => {
-      productRepo.findByIdWithRelationships.mockResolvedValueOnce({
-        storeId: 'store1',
+      productRepo.findById.mockResolvedValueOnce({
+        enterpriseId: 'store1',
         sku: 'oldsku',
       });
-      productRepo.findByStoreIdAndSku.mockResolvedValueOnce({
+      productRepo.findBySku.mockResolvedValueOnce({
         id: 'otherId',
       });
 
       await expect(
-        service.update(new Types.ObjectId().toString(), {
+        service.update('id', {
           sku: 'newsku',
         }),
-      ).rejects.toThrow('Product with this SKU already exists');
+      ).rejects.toThrow(BadRequestException);
     });
 
-    it('should throw if category storeId mismatch', async () => {
-      productRepo.findByIdWithRelationships.mockResolvedValueOnce({
-        storeId: 'store1',
+    it('should throw if category enterpriseId mismatch', async () => {
+      productRepo.findById.mockResolvedValueOnce({
+        enterpriseId: 'store1',
         sku: 'oldsku',
-        category: { _id: new Types.ObjectId() },
-      } as any);
-      productRepo.findByStoreIdAndSku.mockResolvedValueOnce(null);
-      categoryRepo.findByIdOrThrow.mockResolvedValueOnce({
-        storeId: 'different',
-      } as any);
+        category: { id: 'cid' },
+      });
+      productRepo.findBySku.mockResolvedValueOnce(null);
+      categoryRepo.findById.mockResolvedValueOnce({
+        enterpriseId: 'different',
+      });
 
       await expect(
-        service.update(new Types.ObjectId().toString(), {
-          categoryId: new Types.ObjectId().toString(),
+        service.update('id', {
+          categoryId: 'cid',
         }),
       ).rejects.toThrow('Category does not exist');
     });
 
     it('should update successfully', async () => {
-      productRepo.findByIdWithRelationships.mockResolvedValueOnce({
-        storeId: 'store1',
+      productRepo.findById.mockResolvedValueOnce({
+        enterpriseId: 'store1',
         sku: 'oldsku',
-        category: { _id: new Types.ObjectId() },
+        category: { id: 'cid' },
       } as any);
-      productRepo.findByStoreIdAndSku.mockResolvedValueOnce(null);
+      productRepo.findBySku.mockResolvedValueOnce(null);
       categoryRepo.findByIdOrThrow.mockResolvedValueOnce({
-        storeId: 'store1',
+        enterpriseId: 'store1',
       } as any);
 
       productRepo.update.mockResolvedValueOnce({ success: true } as any);
-      const result = await service.update(new Types.ObjectId().toString(), {});
+      const result = await service.update('id', {});
       expect(result).toEqual({ success: true });
     });
   });
 
   describe('delete', () => {
-    it('should throw if id is invalid', async () => {
-      await expect(service.delete('badid')).rejects.toThrow(
-        BadRequestException,
-      );
+    it('should throw if product not found', async () => {
+      productRepo.findById.mockResolvedValue(null);
+      await expect(service.delete('badid')).rejects.toThrow(NotFoundException);
     });
 
     it('should throw if product already deleted', async () => {
-      productRepo.findByIdOrThrow.mockResolvedValueOnce({
+      productRepo.findById.mockResolvedValueOnce({
         deletedAt: new Date(),
       } as any);
-      await expect(
-        service.delete(new Types.ObjectId().toString()),
-      ).rejects.toThrow('Product already deleted');
+      await expect(service.delete('id')).rejects.toThrow(BadRequestException);
     });
 
     it('should delete successfully', async () => {
-      productRepo.findByIdOrThrow.mockResolvedValueOnce({} as any);
+      productRepo.findById.mockResolvedValueOnce({} as any);
       productRepo.softDelete.mockResolvedValueOnce({ success: true } as any);
-      const result = await service.delete(new Types.ObjectId().toString());
+      const result = await service.delete('id');
       expect(result).toEqual({ success: true });
     });
   });
