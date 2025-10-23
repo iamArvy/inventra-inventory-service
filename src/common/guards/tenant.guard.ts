@@ -12,7 +12,7 @@ export class TenantGuard implements CanActivate {
     }
 
     throw new ForbiddenException(
-      'Access denied: request must include X-Tenant-ID or X-Is-Admin=true',
+      'Access denied: request must include tenant identifier',
     );
   }
 }
