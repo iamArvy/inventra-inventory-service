@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:latest
+    container_name: inventory-postgres-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: rootpassword
+      POSTGRES_DB: inventory-db
+    ports:
+      - "5432:5432"
+    volumes:
+      - inventory-service-data:/var/lib/postgresql/data
+    networks:
+      - inventory-service-network
+
+volumes:
+  inventory-service-data:
+
+networks:
+  inventory-service-network:
