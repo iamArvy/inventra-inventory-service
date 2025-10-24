@@ -9,7 +9,7 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { ProductService } from './product.service';
+import { ProductService } from '../service';
 import {
   CreateProductDto,
   PaginatedProductDto,
@@ -17,7 +17,7 @@ import {
   ProductDto,
   ProductQueryDto,
   UpdateProductDto,
-} from './dto';
+} from '../dto';
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -31,7 +31,6 @@ import {
 } from '@nestjs/swagger';
 
 @ApiSecurity('tenant-key')
-@ApiSecurity('admin-key')
 @Controller('products')
 export class ProductController {
   constructor(private readonly service: ProductService) {}

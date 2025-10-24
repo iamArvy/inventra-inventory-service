@@ -9,16 +9,15 @@ import {
   ApiQuery,
   ApiSecurity,
 } from '@nestjs/swagger';
-import { TransactionService } from './transaction.service';
+import { TransactionService } from '../service';
 import {
   CreateTransactionDto,
   PaginatedTransactionDto,
   TransactionDto,
   TransactionQueryDto,
-} from './dto';
+} from '../dto';
 
 @ApiSecurity('tenant-key')
-@ApiSecurity('admin-key')
 @Controller('warehouses/:warehouseId/products/:productId/transactions')
 export class TransactionController {
   constructor(private readonly service: TransactionService) {}

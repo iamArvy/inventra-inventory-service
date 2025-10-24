@@ -4,8 +4,8 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateTransactionDto, TransactionQueryDto } from './dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { CreateTransactionDto, TransactionQueryDto } from '../dto';
+import { PrismaService } from 'src/prisma';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventKeys } from 'src/common/event-keys';
 import { TransactionCreatedEvent } from 'src/events';

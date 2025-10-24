@@ -8,12 +8,12 @@ import {
   CreateInventoryDto,
   InventoryQueryDto,
   PatchInventoryDto,
-} from './dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+} from '../dto';
+import { PrismaService } from 'src/prisma';
 import { TransactionType } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EventKeys } from 'src/common/event-keys';
-import { LowStockEvent } from 'src/events/low-stock.event';
+import { LowStockEvent } from 'src/events';
 import { InventoryCreatedEvent } from 'src/events';
 
 @Injectable()

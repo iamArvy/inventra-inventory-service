@@ -9,8 +9,8 @@ import {
   CreateWarehouseDto,
   PatchWarehouseDto,
   WarehouseQueryDto,
-} from './dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+} from '../dto';
+import { PrismaService } from 'src/prisma';
 import { ClsService } from 'nestjs-cls';
 
 @Injectable()

@@ -5,8 +5,8 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateProductDto, PatchProductDto, ProductQueryDto } from './dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { CreateProductDto, PatchProductDto, ProductQueryDto } from '../dto';
+import { PrismaService } from 'src/prisma';
 import { ProductStatus } from '@prisma/client';
 import { ClsService } from 'nestjs-cls';
 

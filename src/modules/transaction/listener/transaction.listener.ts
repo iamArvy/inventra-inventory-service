@@ -2,7 +2,7 @@ import { TransactionType } from '@prisma/client';
 import { Injectable } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
 import { EventKeys } from 'src/common/event-keys';
-import { TransactionService } from './transaction.service';
+import { TransactionService } from '../service';
 import { InventoryCreatedEvent } from 'src/events';
 
 @Injectable()

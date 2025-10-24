@@ -8,7 +8,7 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { InventoryService } from './inventory.service';
+import { InventoryService } from '../service';
 import {
   CreateInventoryDto,
   InventoryDto,
@@ -16,7 +16,7 @@ import {
   PaginatedInventoryDto,
   PatchInventoryDto,
   UpdateInventoryDto,
-} from './dto';
+} from '../dto';
 import {
   ApiBadRequestResponse,
   ApiBody,
@@ -30,7 +30,6 @@ import {
 } from '@nestjs/swagger';
 
 @ApiSecurity('tenant-key')
-@ApiSecurity('admin-key')
 @Controller('warehouses/:warehouseId/inventory')
 export class InventoryController {
   constructor(private readonly service: InventoryService) {}

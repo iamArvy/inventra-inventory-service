@@ -21,17 +21,16 @@ import {
   ApiConflictResponse,
   ApiSecurity,
 } from '@nestjs/swagger';
-import { WarehouseService } from './warehouse.service';
+import { WarehouseService } from '../service';
 import {
   CreateWarehouseDto,
   PatchWarehouseDto,
   UpdateWarehouseDto,
   WarehouseDto,
   WarehouseQueryDto,
-} from './dto';
+} from '../dto';
 
 @ApiSecurity('tenant-key')
-@ApiSecurity('admin-key')
 @ApiTags('Warehouses')
 @Controller('warehouses')
 export class WarehouseController {
